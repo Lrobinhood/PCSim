@@ -1,0 +1,29 @@
+### 1. Test Configuration
+[BASE]
+SCANTYPE	=	Auto
+COUNTRY		= swe
+
+[SHOWINFO]
+SIGTYPE		= QPSK
+SERVLIST	= true
+
+[CH 1]
+STREAM		=	D:\StreamSparkTS\CanalDigital\8669-207\CD_Mux_314MHz.trp
+SYSTYPE		= DVBC
+SIGTYPE		= QAM
+FREQ			= 314000000
+PLPID			= 0
+
+[CH 2]
+STREAM		=	D:\StreamSparkTS\CanalDigital\8669-207\CD_HomingMux_346MHz.trp
+SYSTYPE		= DVBC
+SIGTYPE		= QAM
+FREQ			= 346000000
+PLPID			= 0
+
+### 2. Test Result
+#[RESULT1]
+#NAME			= Test11
+#TYPE			= tv
+#NO				= 1
+
