@@ -134,7 +134,16 @@ U32BIT AUTOTEST_GetTotalServiceNumber(const char  *TestIniFile);
 U32BIT AUTOTEST_GetSelectedOperId();
 U32BIT AUTOTEST_GetSelectedOperSubListId();
 
+char* AUTOTEST_GetSelectedOperName();
+char* AUTOTEST_GetSelectedOperSubName();
+
+U32BIT AUTOTEST_GetRegionNumber();
+char* AUTOTEST_GetRegionNameByIdx(U32BIT idx);
+char* AUTOTEST_GetRegionSerByIdx(U32BIT idx);
+
+
 char* AUTOTEST_M7_GetScanType(const char  *TestIniFile);
+BOOLEAN AUTOTEST_M7_isSkipAutoDiseqc(const char  *TestIniFile);
 // E: 2022-05-07 for M7
 
 

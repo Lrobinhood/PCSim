@@ -87,9 +87,6 @@ void autotest_set_signal_type(int signal_type)
 // E: Local Variable Define
 
 // B: Local function declare
-void Init_Test_Filter_Wrapper();
-
-void Init_Test_for_Country(U32BIT CountryCode, E_STB_DP_SIGNAL_TYPE SigType);
 
 BOOLEAN Init_Manual_Tunning_Params(E_STB_TUNE_SYSTEM_TYPE tune_sys_type, S_MANUAL_TUNING_PARAMS *tuning_params_ptr);
 

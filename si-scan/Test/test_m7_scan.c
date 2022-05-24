@@ -30,6 +30,7 @@
 #include "cert_log.h"
 #include "cert_scan_common.h"
 
+#include "cert_apctrl.h"
 #include "cert_apctrl_scan_common.h"
 #include "cert_apctrl_m7_scan_common.h"
 #include "cert_apctrl_m7_scan.h"
@@ -44,12 +45,12 @@
 void Test_CERT_M7_Scan_Start()
 {
     cert_apctrl_scan_Init();
-    cert_apctrl_scan_M7_ScanStart(EN_M7_SCAN_FTI);
+    CERT_APCTRL_SCAN_M7_ScanStart(EN_M7_SCAN_FTI, FALSE);
 }
 
 void Test_CERT_M7_Scan_Stop()
 {
-    cert_apctrl_scan_M7_ScanStop(0);
+    CERT_APCTRL_SCAN_M7_ScanStop(0);
 }
 
 void Test_CERT_M7_SCAN_ACTION()

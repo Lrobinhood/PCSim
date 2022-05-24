@@ -21,6 +21,8 @@ void autotest_set_signal_type(int signal_type);
 
 
 void Init_Test_DVB(E_SIMU_TYPE eSimuType, DVB_EVENT_HANDLER dvb_event_handle_func);
+void Init_Test_Filter_Wrapper();
+void Init_Test_for_Country(U32BIT CountryCode, E_STB_DP_SIGNAL_TYPE SigType, const char *TestIniFile);
 
 bool is_scan_test(unsigned int test_type);
 

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <memory.h>
-
+#include <malloc.h>
 
 #include "stbhwc.h"
 #include "stbheap.h"
@@ -47,11 +47,12 @@
 #include "cert_misc.h"
 #include "cert_dbg.h"
 
-
 #include "autotest_cfg.h"
 #include "autotest_result.h"
 #include "autotest_main.h"
 #include "autotest_scan.h"
+#include "autotest_interface.h"
+
 
 #define TAG "AUTOTEST-SCAN"
 
@@ -72,12 +73,13 @@ static int autotest_scan_m7_poweron(const char *TestIniFile);
 
 
 
-
 int autotest_m7_fast(const char *TestIniFile)
 {
     int ret = 0;
 
     char* scan_type_str = AUTOTEST_M7_GetScanType(TestIniFile);
+
+    autotest_interface_reginterface();
 
     if (0 == strcmp(scan_type_str, "standby"))
     {
@@ -95,6 +97,88 @@ int autotest_m7_fast(const char *TestIniFile)
     return ret;
 }
 
+
+
+/*
+Get Operator List:          cmd 0x00010002
+    Request("Dvbs.scanControl", "[65538]");
+Get Get Sub Operator List:  cmd 0x00010003
+    Request("Dvbs.scanControl", "[65539]");
+Set Operator:               cmd 0x00010004
+    Request("Dvbs.scanControl", "[65540, "oper name"]")
+Set Set SubOperator:        cmd 0x00010005
+    Request("Dvbs.scanControl", "[65541, "suboper name"]")
+*/
+
+void M7_UI_Handle_OPELIST_SELECT_NOTIFY()
+{
+    char cmd[128];
+
+    // 1. Get Operator List:          cmd 0x00010002
+    sprintf(cmd, "[%d]", 0x00010002);
+    autotest_interface_request("Dvbs.scanControl", cmd);
+
+    // 2. Set Operator:               cmd 0x00010004
+    sprintf(cmd, "[%d, \"%s\"]", 0x00010004, AUTOTEST_GetSelectedOperName());
+    autotest_interface_request("Dvbs.scanControl", cmd);
+
+    // 3. Get Sub Operator List:  cmd 0x00010003
+    sprintf(cmd, "[%d]", 0x00010003);
+    autotest_interface_request("Dvbs.scanControl", cmd);
+
+    // 4. Set Set SubOperator:        cmd 0x00010005
+    sprintf(cmd, "[%d, \"%s\"]", 0x00010005, AUTOTEST_GetSelectedOperSubName());
+    autotest_interface_request("Dvbs.scanControl", cmd);
+}
+
+void M7_UI_Handle_DISEQC_CONFIRM_NOTIFY()
+{
+    char cmd[128];
+
+    sprintf(cmd, "[%d]", 0x00010001);
+    autotest_interface_request("Dvbs.scanControl", cmd);
+}
+
+void M7_UI_Handle_REGION_SELECT_NOTIFY()
+{
+    char cmd[1024];
+    char item[128];
+
+    // Set Region
+    sprintf(cmd, "[%d]", 0x00010006);
+    autotest_interface_request("Dvbs.scanControl", cmd);
+
+    // Get Region
+    sprintf(cmd, "[%d, [", 0x00010007);
+
+    // Set Region
+    unsigned int region_num = AUTOTEST_GetRegionNumber();
+    for (unsigned int loop = 0; loop < region_num; loop++)
+    {
+        sprintf(item,"{\"RegionName\":\"%s\", \"SetRegion\":\"%s\"}",
+                    AUTOTEST_GetRegionNameByIdx(loop + 1),
+                    AUTOTEST_GetRegionSerByIdx(loop + 1));
+
+        strcat(cmd, item);
+
+        if (loop + 1 < region_num)
+        {
+            strcat(cmd, ", ");
+        }
+    }
+
+    sprintf(item, "]]");
+
+    strcat(cmd, item);
+
+    //printf("%s\n", cmd);
+
+    autotest_interface_request("Dvbs.scanControl", cmd);
+}
+
+
+
+// B: Local function define
 static int autotest_scan_m7_fti(const char *TestIniFile)
 {
     U32BIT count = 0;
@@ -129,8 +213,10 @@ static int autotest_scan_m7_fti(const char *TestIniFile)
     autotest_scan_clear_all_records();
 
     // Call Start M7
+    BOOLEAN skipauto = AUTOTEST_M7_isSkipAutoDiseqc(TestIniFile);
+
     cert_apctrl_scan_Init();
-    cert_apctrl_scan_M7_ScanStart(EN_M7_SCAN_FTI);
+    CERT_APCTRL_SCAN_M7_ScanStart(EN_M7_SCAN_FTI, skipauto);
 
     LOOP:
     {
@@ -186,7 +272,7 @@ static int autotest_scan_m7_standby(const char *TestIniFile)
 
     // Call Start M7
     cert_apctrl_scan_Init();
-    cert_apctrl_scan_M7_ScanStart(EN_M7_SCAN_STANDBY);
+    CERT_APCTRL_SCAN_M7_ScanStart(EN_M7_SCAN_STANDBY, FALSE);
 
     LOOP:
     {
@@ -242,7 +328,7 @@ static int autotest_scan_m7_poweron(const char *TestIniFile)
 
     // Call Start M7
     cert_apctrl_scan_Init();
-    cert_apctrl_scan_M7_ScanStart(EN_M7_SCAN_POWERON);
+    CERT_APCTRL_SCAN_M7_ScanStart(EN_M7_SCAN_POWERON, FALSE);
 
     LOOP:
     {
@@ -279,29 +365,52 @@ static void m7_DVB_EVENT_HANDLER(U32BIT event, void *event_data, U32BIT data_siz
     }
     else if (STB_EVENT_SEARCH_M7_DISEQC_CONFIRM_NOTIFY == event)
     {
+#if 1
+        // B: Notify to UI & User Selected
+        autotest_interface_notify(event, event_data, data_size);
+        // E: Notify to UI & User Selected
+#else
         cert_apctrl_scan_SendMsg(INVALID_RES_ID, EN_M7_SCAN_UI_MSG, EN_M7_SCAN_UI_EVENT_DISEQC_CONFIRM, NULL, NULL);
+#endif
     }
     else if (STB_EVENT_SEARCH_M7_OPELIST_SELECT_NOTIFY == event)
     {
-        U32BIT *oper_list_id_ptr = (U32BIT *)malloc(sizeof(U32BIT));
-        U32BIT *oper_sublist_id_ptr = (U32BIT *)malloc(sizeof(U32BIT));
+#if 1
+        // B: Notify to UI & User Selected
+        autotest_interface_notify(event, event_data, data_size);
+        // E: Notify to UI & User Selected
+#else
 
-        *oper_list_id_ptr = AUTOTEST_GetSelectedOperId();
-        *oper_sublist_id_ptr = AUTOTEST_GetSelectedOperSubListId();
+        {
+            U32BIT *oper_list_id_ptr = (U32BIT *)malloc(sizeof(U32BIT));
+            U32BIT *oper_sublist_id_ptr = (U32BIT *)malloc(sizeof(U32BIT));
 
-        cert_apctrl_scan_SendMsg(INVALID_RES_ID, EN_M7_SCAN_UI_MSG, EN_M7_SCAN_UI_EVENT_OPERLIST_CONFIRM, oper_list_id_ptr, oper_sublist_id_ptr);
+            *oper_list_id_ptr = AUTOTEST_GetSelectedOperId();
+            *oper_sublist_id_ptr = AUTOTEST_GetSelectedOperSubListId();
+
+            cert_apctrl_scan_SendMsg(INVALID_RES_ID, EN_M7_SCAN_UI_MSG, EN_M7_SCAN_UI_EVENT_OPERLIST_CONFIRM, oper_list_id_ptr, oper_sublist_id_ptr);
+        }
+#endif
     }
     else if (STB_EVENT_SEARCH_M7_REGION_SELECT_NOTIFY == event)
     {
+    #if 1
+        autotest_interface_notify(event, event_data, data_size);
+    #else
         cert_apctrl_scan_SendMsg(INVALID_RES_ID, EN_M7_SCAN_UI_MSG, EN_M7_SCAN_UI_EVENT_REGION_CONFIRM, NULL, NULL);
+    #endif
     }
     else if (STB_EVENT_SEARCH_M7_SEARCH_FINISHED_NOTIFY == event)
     {
+        // B: Notify to UI & User Selected
+        autotest_interface_notify(event, event_data, data_size);
+        // E: Notify to UI & User Selected
+
         Wrapper_DisableTsLoop();
         autotest_set_exit_flag(1);
     }
-}
 
+}
 
 // E: Local function define
 

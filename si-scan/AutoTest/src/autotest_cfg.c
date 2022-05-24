@@ -805,6 +805,67 @@ U32BIT AUTOTEST_GetSelectedOperSubListId()
     return count;
 }
 
+char* AUTOTEST_GetSelectedOperName()
+{
+    static char str[128];
+
+    long n;
+
+    n = ini_gets("M7FAST", "OPERNAME", "unknow", str, sizearray(str), sg_config_ini_file);
+
+    return str;
+}
+
+
+char* AUTOTEST_GetSelectedOperSubName()
+{
+    static char str[128];
+
+    long n;
+
+    n = ini_gets("M7FAST", "SUBNAME", "unknow", str, sizearray(str), sg_config_ini_file);
+
+    return str;
+}
+
+U32BIT AUTOTEST_GetRegionNumber()
+{
+    U32BIT count = 0;
+
+    long n;
+
+    n = ini_getl("M7FAST", "REGIONNUM", 0xFFFFFFFF, sg_config_ini_file);
+    count = (U32BIT)n;
+
+    return count;
+}
+
+char* AUTOTEST_GetRegionNameByIdx(U32BIT idx)
+{
+    static char str[128];
+    char key[32];
+
+    long n;
+
+    sprintf(key, "REGION%u", idx);
+    n = ini_gets("M7FAST", key, "unknow", str, sizearray(str), sg_config_ini_file);
+
+    return str;
+}
+
+char* AUTOTEST_GetRegionSerByIdx(U32BIT idx)
+{
+    static char str[128];
+    char key[32];
+
+    long n;
+
+    sprintf(key, "REGIONSVR%u", idx);
+    n = ini_gets("M7FAST", key, "unknow", str, sizearray(str), sg_config_ini_file);
+
+    return str;
+}
+
 char* AUTOTEST_M7_GetScanType(const char  *TestIniFile)
 {
     char str[100];
@@ -822,6 +883,24 @@ char* AUTOTEST_M7_GetScanType(const char  *TestIniFile)
 
     return "fti";
 }
+
+BOOLEAN AUTOTEST_M7_isSkipAutoDiseqc(const char  *TestIniFile)
+{
+    BOOLEAN isSkip = FALSE;
+
+    char str[100];
+    long n;
+
+    n = ini_gets("M7FAST", "SKIPAUTO", "false", str, sizearray(str), TestIniFile);
+    if (0 == strcmp(str, "true"))
+    {
+        isSkip = TRUE;
+    }
+
+    return isSkip;
+}
+
+
 
 
 // E: 2022-05-07 for M7

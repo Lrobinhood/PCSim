@@ -1,0 +1,120 @@
+#ifndef GLUE_REQUESTDATA_H
+#define GLUE_REQUESTDATA_H
+
+#include <string>
+#include <stdint.h>
+
+/*
+ * The interface for reading requests. The interface described here is only concerned with reading arguments, it is for
+ * implementations to identify the requested function and invoke it. Arguments are identified by their position (i.e.
+ * are positional arguments) and are read at most once from first to last. This is compatible with sub-protocols that
+ * use named arguments (e.g. use names indicating position).
+ */
+class RequestData
+{
+    public:
+        class Array
+   {
+      public:
+      Array() {};
+      virtual ~Array() {};
+
+      /**
+       * @brief Append a bool with the key 'key' and value 'value'.
+       */
+      virtual void appendBool(bool value) = 0;
+
+      /**
+       * @brief Append an integer with the key 'key' and value 'value'.
+       */
+      virtual void appendInt32(int32_t value) = 0;
+
+      /**
+       * @brief Append an unsigned integer with the key 'key' and value 'value'.
+       */
+      virtual void appendUInt32(uint32_t value) = 0;
+
+      /**
+       * @brief Append an long long with the key 'key' and value 'value'.
+       */
+      virtual void appendLong64(int64_t value) = 0;
+
+      /**
+       * @brief Append an unsigned long long with the key 'key' and value 'value'.
+       */
+      virtual void appendULong64(uint64_t value) = 0;
+
+      /**
+       * @brief Append a string with the key 'key' and value 'value'.
+       */
+      virtual void appendString(const std::string& value) = 0;
+
+      /**
+       * @brief Append an array. Until the appended array is finished, this array cannot be finished.
+       */
+      virtual Array* appendArray(int size) = 0;
+
+      /**
+       * @brief Append an object. Until the appended object is finished, this array cannot be finished.
+       */
+      virtual Object* appendObject(int size) = 0;
+
+      /**
+       * @brief Finish this array. Before calling this method, non-primitive values (arrays and objects) must be finished.
+       */
+      virtual void finish() = 0;
+
+      /**
+       * @brief This data is finished.
+       */
+      virtual bool isFinished() = 0;
+
+      private:
+      Array(Object const&);
+      Array& operator=(Array const&);
+   };
+
+        RequestData() {};
+        virtual ~RequestData() {};
+
+        /**
+         * @brief Removes the first element from the list of positional arguments for this request and if that element is
+         *    convetible to a boolean, returns that element, otherwise returns the defaultValue.
+         * @param defaultValue A value that is returned if the first element is non-existent or not convertible to a bool.
+         */
+        virtual bool shiftBool(bool defaultValue) = 0;
+
+        /**
+         * @brief Removes the first element from the list of positional arguments for this request and if that element is
+         *    convetible to a 32 bit integer, returns that element, otherwise returns the defaultValue.
+         * @param defaultValue A value that is returned if the first element is non-existent or not convertible to a 32 bit integer.
+         * @param min If the value is less than min, defaultValue is returned.
+         * @param max If the value is greater than max, defaultValue is returned.
+         */
+        virtual int32_t shiftInt32(int32_t defaultValue, int32_t min = INT32_MIN, int32_t max = INT32_MAX) = 0;
+
+        /**
+         * @brief Removes the first element from the list of positional arguments for this request and if that element is
+         *    convetible to a 32 bit unsigned integer, returns that element, otherwise returns the defaultValue.
+         * @param defaultValue A value that is returned if the first element is non-existent or not convertible to a 32 bit unsigned integer.
+         * @param min If the value is less than min, defaultValue is returned.
+         * @param max If the value is greater than max, defaultValue is returned.
+         */
+        virtual uint32_t shiftUInt32(uint32_t defaultValue, uint32_t min = 0, uint32_t max = UINT32_MAX) = 0;
+
+        /**
+         * @brief Removes the first element from the list of positional arguments for this request and if that element is
+         *    convetible to a string, returns that element, otherwise returns the defaultValue.
+         * @param defaultValue A value that is returned if the first element is non-existent or not convertible to a string.
+         */
+        virtual std::string shiftString(std::string defaultValue) = 0;
+
+        virtual void resetDataIdx() {};
+
+    private:
+        RequestData(RequestData const&);
+        RequestData& operator=(RequestData const&);
+};
+
+#endif
+
